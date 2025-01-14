@@ -3,3 +3,5 @@
 wwwroot
 node_modules
 build
+bin
+obj
