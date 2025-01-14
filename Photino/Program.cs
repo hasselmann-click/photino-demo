@@ -40,6 +40,14 @@ class Program
         });
         var app = builder.Build();
 
+        // app.UseCors("AllowAll");
+        // app.MapControllers(); // Map API controllers
+        // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
+
+        // do controllers before calling "UseSpa"
+        app.MapGet("/greetings", () => "Hello from ASP.NET");
+        app.UseStaticFiles();
+
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
@@ -57,17 +65,11 @@ class Program
 
             // Serve static files from the SPA build folder
             app.UseSpaStaticFiles();
+            app.UseSpa(spa =>
+            {
+                spa.Options.SourcePath = "wwwroot";
+            });
         }
-
-        // app.UseRouting();
-        // app.UseCors("AllowAll");
-        // app.MapControllers(); // Map API controllers
-        // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
-
-        app.UseSpa(spa =>
-        {
-            spa.Options.SourcePath = "wwwroot";
-        });
 
         return app;
     }
