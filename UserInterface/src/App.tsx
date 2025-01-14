@@ -7,6 +7,11 @@ import reactLogo from './assets/react.svg'
 function App() {
   const [count, setCount] = useState(0)
 
+  const sendMessage = () => {
+    // @ts-ignore
+    window.external.sendMessage('Hello from React!')
+  }
+  
   return (
     <>
       <img src="/vite-deno.svg" alt="Vite with Deno" />
@@ -26,6 +31,10 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
+        <p>HMR test</p>
+        <button onClick={sendMessage}>
+          Send message
+        </button>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more

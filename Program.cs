@@ -1,5 +1,6 @@
 using Photino.NET;
 using Photino.NET.Server;
+using System;
 using System.Drawing;
 using System.Text;
 
@@ -9,7 +10,12 @@ namespace Photino.HelloPhotino.React;
 
 class Program
 {
+
+#if DEBUG
+    public static bool IsDebugMode = true;     //serve files from asp.net runtime
+#else
     public static bool IsDebugMode = false;     //serve files from asp.net runtime
+#endif
 
     [STAThread]
     static void Main(string[] args)
