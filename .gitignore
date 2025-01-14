@@ -1,7 +1,10 @@
-.vscode
 .next
 wwwroot
 node_modules
 build
 bin
 obj
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
