@@ -1,10 +1,12 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Photino.NET;
-using Photino.NET.Server;
-using System;
 using System.Drawing;
 using System.Text;
 
-namespace Photino.HelloPhotino.React;
+namespace Photino;
 //NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
 // Or edit the .csproj file and change the <OutputType> tag from "WinExe" to "Exe".
 
@@ -17,16 +19,72 @@ class Program
     public static bool IsDebugMode = false;     //serve files from asp.net runtime
 #endif
 
-    [STAThread]
-    static void Main(string[] args)
+    private static class Configurations
     {
-        PhotinoServer
-            .CreateStaticFileServer(args, out string baseUrl)
-            .RunAsync();
+        public static string BaseUrl = "http://localhost";
+        public static int BackendServerPort = 5000;
+        public static int Dev_FrontendServerPort = 3000;
+    }
+
+    static WebApplication CreateAspNetServer(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+        builder.WebHost.UseKestrel(options =>
+        {
+            options.ListenAnyIP(Configurations.BackendServerPort);
+        });
+        // builder.Services.AddControllers();
+        builder.Services.AddSpaStaticFiles(options =>
+        {
+            options.RootPath = "wwwroot";
+        });
+        var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+            app.UseSpa(spa =>
+            {
+                // Proxy requests to the SPA development server
+                spa.UseProxyToSpaDevelopmentServer($"{Configurations.BaseUrl}:{Configurations.Dev_FrontendServerPort}");
+            });
+        }
+        else
+        {
+            // app.UseExceptionHandler("/Home/Error");
+            // app.UseHsts();
+
+            // Serve static files from the SPA build folder
+            app.UseSpaStaticFiles();
+        }
+
+        // app.UseRouting();
+        // app.UseCors("AllowAll");
+        // app.MapControllers(); // Map API controllers
+        // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
+
+        app.UseSpa(spa =>
+        {
+            spa.Options.SourcePath = "wwwroot";
+        });
+
+        return app;
+    }
+
+    [STAThread]
+    static async Task Main(string[] args)
+    {
+        // PhotinoServer
+        //     .CreateStaticFileServer(args, out string baseUrl)
+        //     .RunAsync();
+        var cancellationSource = new CancellationTokenSource();
+        var server = CreateAspNetServer(args);
+        _ = server.StartAsync(cancellationSource.Token);
 
         // The appUrl is set to the local development server when in debug mode.
         // This helps with hot reloading and debugging.
-        string appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
+        string appUrl = $"{Configurations.BaseUrl}:{Configurations.BackendServerPort}";
         Console.WriteLine($"Serving React app at {appUrl}");
 
         // Window title declared here for visibility
@@ -76,5 +134,7 @@ class Program
             .Load(appUrl); // Can be used with relative path strings or "new URI()" instance to load a website.
 
         window.WaitForClose(); // Starts the application event loop
+        await cancellationSource.CancelAsync(); // Stop the server
+        await server.StopAsync(); // Stop the AspNet server
     }
 }
