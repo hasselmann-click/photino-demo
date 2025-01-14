@@ -46,7 +46,12 @@ class Program
 
         // do controllers before calling "UseSpa"
         app.MapGet("/greetings", () => "Hello from ASP.NET");
-        app.UseStaticFiles();
+        // Middleware ordering, as recommended here: 
+        // https://learn.microsoft.com/en-gb/aspnet/core/diagnostics/asp0014?view=aspnetcore-9.0#when-to-suppress-warnings
+#pragma warning disable ASP0014 
+        app.UseRouting();
+        app.UseEndpoints(e => { });
+#pragma warning restore ASP0014
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
