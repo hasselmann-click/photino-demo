@@ -23,7 +23,8 @@
 		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
 
 		<!-- Enable compression for the single executable -->
-		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+		<!-- can be come costly on startup-->
+		<!-- <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile> -->
 
 		<!-- Disable default content for better control of which files are bundled. See
 		https://docs.microsoft.com/en-us/dotnet/core/deploying/single-file#default-content-in-single-file-bundles -->
@@ -32,7 +33,14 @@
 
 		<!-- Include debug symbols into the executable -->
 		<DebugType>embedded</DebugType>
+
+		<!-- generate manifest for EmbeddedResource (see below) -->
+		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resources\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="9.0.1" />
@@ -40,13 +48,6 @@
 		<PackageReference Include="Photino.NET" Version="3.2.3" />
 		<PackageReference Include="Photino.NET.Server" Version="3.0.11" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="wwwroot\**">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		</Content>
 	</ItemGroup>
 
 	<!-- Move single file application (Windows, macOS, Linux) to {{ProjectDir}}/publish/build path

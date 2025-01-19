@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Photino.NET;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -26,15 +28,50 @@ class Program
         public static int Dev_FrontendServerPort = 3000;
     }
 
-    static WebApplication CreateAspNetServer(string[] args)
+    /// <summary>
+    /// Create a static file server.
+    /// The builder setup is taken from <see href="https://github.com/tryphotino/photino.NET.Server/blob/master/Photino.NET.Server/Photino.NET.Server.cs">Photino.NET.Server</see>.
+    /// We added the SPA app routing.
+    /// </summary>
+    /// <param name="args"></param>
+    /// <param name="startPort"></param>
+    /// <param name="portRange"></param>
+    /// <param name="webRootFolder"></param>
+    /// <param name="baseUrl"></param>
+    /// <returns></returns>
+    /// <exception cref="SystemException"></exception>
+    /// <see href="https://github.com/tryphotino/photino.NET.Server/blob/master/Photino.NET.Server/Photino.NET.Server.cs"/>
+    public static WebApplication CreateStaticFileServer(
+        string[] args, int startPort, int portRange,
+        string webRootFolder, out string baseUrl)
     {
-        var builder = WebApplication.CreateBuilder(args);
-        builder.WebHost.UseKestrel(options =>
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions()
         {
-            options.ListenAnyIP(Configurations.BackendServerPort);
+            Args = args,
+            // WebRootPath = // don't create web root path on disk
         });
-        // builder.Services.AddControllers();
-        var app = builder.Build();
+
+        // try to read files from the embedded resources - from a slightly different path, prefixed with Resources/
+        var manifestEmbeddedFileProvider = new ManifestEmbeddedFileProvider(
+                System.Reflection.Assembly.GetEntryAssembly()!, // not null, because code is managed
+                $"Resources/{webRootFolder}");
+        builder.Environment.WebRootFileProvider = manifestEmbeddedFileProvider;
+
+        // set base url
+        // try ports until available port is found
+        int port = startPort;
+        while (IPGlobalProperties.GetIPGlobalProperties()
+                .GetActiveTcpListeners()
+                .Any(x => x.Port == port))
+        {
+            if (port > port + portRange)
+                throw new SystemException($"Couldn't find open port within range {port - portRange} - {port}.");
+            port++;
+        }
+        baseUrl = $"{Configurations.BaseUrl}:{port}";
+        builder.WebHost.UseUrls(baseUrl);
+
+        WebApplication app = builder.Build();
 
         // app.UseCors("AllowAll");
         // app.MapControllers(); // Map API controllers
@@ -62,11 +99,13 @@ class Program
         }
         else
         {
-            app.UseStaticFiles();
-            // will serve index.html from source path
+            app.UseStaticFiles(); // uses the WebRootFileProvider
             app.UseSpa(spa =>
             {
-                spa.Options.SourcePath = "wwwroot";
+                spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions
+                {
+                    FileProvider = manifestEmbeddedFileProvider,
+                };
             });
         }
 
@@ -77,15 +116,11 @@ class Program
     static async Task Main(string[] args)
     {
 
-        Console.WriteLine($"Running in Debug Mode: {IsDebugMode}");
-
         // start the asp net server
-        var server = CreateAspNetServer(args);
+        var server = CreateStaticFileServer(args, Configurations.BackendServerPort, 100, "wwwroot", out string appUrl);
         _ = server.StartAsync();
 
-        // The appUrl is set to the local development server when in debug mode.
-        // This helps with hot reloading and debugging.
-        string appUrl = $"{Configurations.BaseUrl}:{Configurations.BackendServerPort}";
+        Console.WriteLine($"Running in Debug Mode: {IsDebugMode}");
         Console.WriteLine($"Serving React app at {appUrl}");
 
         // Start photino window

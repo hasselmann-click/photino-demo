@@ -36,7 +36,7 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
-        <p>HMR test 2</p>
+        <p>HMR test 3</p>
         <button onClick={sendMessage}>
           Send message
         </button>
