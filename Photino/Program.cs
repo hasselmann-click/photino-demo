@@ -51,7 +51,7 @@ class Program
             // WebRootPath = // don't create web root path on disk
         });
 
-        // try to read files from the embedded resources - from a slightly different path, prefixed with Resources/
+        // get files from embedded resources
         var manifestEmbeddedFileProvider = new ManifestEmbeddedFileProvider(
                 System.Reflection.Assembly.GetEntryAssembly()!, // not null, because code is managed
                 $"Resources/{webRootFolder}");
@@ -100,13 +100,7 @@ class Program
         else
         {
             app.UseStaticFiles(); // uses the WebRootFileProvider
-            app.UseSpa(spa =>
-            {
-                spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions
-                {
-                    FileProvider = manifestEmbeddedFileProvider,
-                };
-            });
+            app.UseSpa(spa => { /* empty config */ }); // reroutes every request to index.html
         }
 
         return app;
