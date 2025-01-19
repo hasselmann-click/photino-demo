@@ -6,6 +6,9 @@ var Configurations = new
 };
 
 var builder = WebApplication.CreateBuilder(args);
+var baseUrl = $"{Configurations.BaseUrl}:{Configurations.BackendServerPort}";
+builder.WebHost.UseUrls(baseUrl);
+
 var app = builder.Build();
 
 // app.UseCors("AllowAll");
