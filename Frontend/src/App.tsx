@@ -11,6 +11,11 @@ function App() {
     // @ts-ignore
     window.external.sendMessage("Hello from React!");
   };
+  const getGreeting = async () => {
+    const response = await fetch("http://localhost:5000/greetings");
+    const data = await response.text();
+    alert(data);
+  };
 
   return (
     <>
@@ -34,6 +39,9 @@ function App() {
         <p>HMR test 2</p>
         <button onClick={sendMessage}>
           Send message
+        </button>
+        <button onClick={getGreeting}>
+          Get Greeting
         </button>
       </div>
       <p className="read-the-docs">

@@ -40,6 +40,19 @@ class Program
         });
         var app = builder.Build();
 
+        // app.UseCors("AllowAll");
+        // app.MapControllers(); // Map API controllers
+        // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
+
+        // do controllers before calling "UseSpa"
+        app.MapGet("/greetings", () => "Hello from ASP.NET");
+        // Middleware ordering, as recommended here: 
+        // https://learn.microsoft.com/en-gb/aspnet/core/diagnostics/asp0014?view=aspnetcore-9.0#when-to-suppress-warnings
+#pragma warning disable ASP0014 
+        app.UseRouting();
+        app.UseEndpoints(e => { });
+#pragma warning restore ASP0014
+
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
@@ -57,17 +70,11 @@ class Program
 
             // Serve static files from the SPA build folder
             app.UseSpaStaticFiles();
+            app.UseSpa(spa =>
+            {
+                spa.Options.SourcePath = "wwwroot";
+            });
         }
-
-        // app.UseRouting();
-        // app.UseCors("AllowAll");
-        // app.MapControllers(); // Map API controllers
-        // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
-
-        app.UseSpa(spa =>
-        {
-            spa.Options.SourcePath = "wwwroot";
-        });
 
         return app;
     }
