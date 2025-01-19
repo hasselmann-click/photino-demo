@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Photino.NET;
-using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Photino;
@@ -14,9 +14,9 @@ class Program
 {
 
 #if DEBUG
-    public static bool IsDebugMode = true;     //serve files from asp.net runtime
+    public static bool IsDebugMode = true;     // serve files from ui dev server
 #else
-    public static bool IsDebugMode = false;     //serve files from asp.net runtime
+    public static bool IsDebugMode = false;     // serve files from asp.net runtime
 #endif
 
     private static class Configurations
@@ -34,10 +34,6 @@ class Program
             options.ListenAnyIP(Configurations.BackendServerPort);
         });
         // builder.Services.AddControllers();
-        builder.Services.AddSpaStaticFiles(options =>
-        {
-            options.RootPath = "wwwroot";
-        });
         var app = builder.Build();
 
         // app.UseCors("AllowAll");
@@ -46,6 +42,7 @@ class Program
 
         // do controllers before calling "UseSpa"
         app.MapGet("/greetings", () => "Hello from ASP.NET");
+
         // Middleware ordering, as recommended here: 
         // https://learn.microsoft.com/en-gb/aspnet/core/diagnostics/asp0014?view=aspnetcore-9.0#when-to-suppress-warnings
 #pragma warning disable ASP0014 
@@ -65,11 +62,8 @@ class Program
         }
         else
         {
-            // app.UseExceptionHandler("/Home/Error");
-            // app.UseHsts();
-
-            // Serve static files from the SPA build folder
-            app.UseSpaStaticFiles();
+            app.UseStaticFiles();
+            // will serve index.html from source path
             app.UseSpa(spa =>
             {
                 spa.Options.SourcePath = "wwwroot";
@@ -82,66 +76,70 @@ class Program
     [STAThread]
     static async Task Main(string[] args)
     {
-        // PhotinoServer
-        //     .CreateStaticFileServer(args, out string baseUrl)
-        //     .RunAsync();
-        var cancellationSource = new CancellationTokenSource();
+
+        Console.WriteLine($"Running in Debug Mode: {IsDebugMode}");
+
+        // start the asp net server
         var server = CreateAspNetServer(args);
-        _ = server.StartAsync(cancellationSource.Token);
+        _ = server.StartAsync();
 
         // The appUrl is set to the local development server when in debug mode.
         // This helps with hot reloading and debugging.
         string appUrl = $"{Configurations.BaseUrl}:{Configurations.BackendServerPort}";
         Console.WriteLine($"Serving React app at {appUrl}");
 
-        // Window title declared here for visibility
-        string windowTitle = "Photino.React Demo App";
-
-        // Creating a new PhotinoWindow instance with the fluent API
-        var window = new PhotinoWindow()
-            .SetTitle(windowTitle)
-            .SetUseOsDefaultSize(false)
-            .SetSize(new Size(2048, 1024))
-            // Resize to a percentage of the main monitor work area
-            //.Resize(50, 50, "%")
-            .SetUseOsDefaultSize(false)
-            .SetSize(new Size(800, 600))
-            // Center window in the middle of the screen
-            .Center()
-            // Users can resize windows by default.
-            // Let's make this one fixed instead.
-            .SetResizable(true)
-            .RegisterCustomSchemeHandler("app", (object sender, string scheme, string url, out string contentType) =>
-            {
-                contentType = "text/javascript";
-                return new MemoryStream(Encoding.UTF8.GetBytes(@"
+        // Start photino window
+        // Creating a wrapping thread because of STA and async main discussion
+        // https://github.com/tryphotino/photino.NET/issues/52#issuecomment-2074325176
+        var thread = new Thread(() =>
+        {
+            // Creating a new PhotinoWindow instance
+            var window = new PhotinoWindow()
+                .SetTitle("Photino.React Demo App")
+                .SetUseOsDefaultSize(true)
+                // .SetSize(new Size(2048, 1024))
+                // Center window in the middle of the screen
+                .Center()
+                // Users can resize windows by default.
+                .SetResizable(true)
+                .RegisterCustomSchemeHandler("app", (object sender, string scheme, string url, out string contentType) =>
+                {
+                    contentType = "text/javascript";
+                    return new MemoryStream(Encoding.UTF8.GetBytes(@"
                         (() =>{
                             window.setTimeout(() => {
                                 alert(`🎉 Dynamically inserted JavaScript.`);
                             }, 1000);
                         })();
                     "));
-            })
-            // Most event handlers can be registered after the
-            // PhotinoWindow was instantiated by calling a registration 
-            // method like the following RegisterWebMessageReceivedHandler.
-            // This could be added in the PhotinoWindowOptions if preferred.
-            .RegisterWebMessageReceivedHandler((object sender, string message) =>
-            {
-                var window = (PhotinoWindow)sender;
+                })
+                // Most event handlers can be registered after the
+                // PhotinoWindow was instantiated by calling a registration 
+                // method like the following RegisterWebMessageReceivedHandler.
+                // This could be added in the PhotinoWindowOptions if preferred.
+                .RegisterWebMessageReceivedHandler((object sender, string message) =>
+                {
+                    var window = (PhotinoWindow)sender;
 
-                // The message argument is coming in from sendMessage.
-                // "window.external.sendMessage(message: string)"
-                string response = $"Received message: \"{message}\"";
+                    // The message argument is coming in from sendMessage.
+                    // "window.external.sendMessage(message: string)"
+                    string response = $"Received message: \"{message}\"";
 
-                // Send a message back the to JavaScript event handler.
-                // "window.external.receiveMessage(callback: Function)"
-                window.SendWebMessage(response);
-            })
-            .Load(appUrl); // Can be used with relative path strings or "new URI()" instance to load a website.
+                    // Send a message back the to JavaScript event handler.
+                    // "window.external.receiveMessage(callback: Function)"
+                    window.SendWebMessage(response);
+                });
+            window.Load(appUrl); // Can be used with relative path strings or "new URI()" instance to load a website.
+            window.WaitForClose(); // Starts the application event loop
+        });
+        // Configure thread for STA (Single Thread Apartment)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            thread.SetApartmentState(ApartmentState.STA);
+        }
+        thread.Start(); // Start running STA thread for action
+        thread.Join(); // Sync back to running thread
 
-        window.WaitForClose(); // Starts the application event loop
-        await cancellationSource.CancelAsync(); // Stop the server
         await server.StopAsync(); // Stop the AspNet server
     }
 }
