@@ -3,12 +3,44 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
-		<Platforms>AnyCPU</Platforms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-    	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+
+		<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+		<!-- <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest> -->
+
+		<!-- Set the application icon -->
+		<!-- <ApplicationIcon>./publish/templates/win/app.ico</ApplicationIcon> -->
+
+		<!-- Version will be set to a debug version if not overridden by CLI parameter. -->
+		<Version>0.0.0-$([System.DateTime]::Now.ToString(yyyyMMddHms))</Version>
+
+		<!-- Bundle .NET runtime -->
+		<SelfContained>true</SelfContained>
+
+		<!-- Bundle all dependencies into a single executable -->
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+
+		<!-- Enable compression for the single executable -->
+		<!-- can be come costly on startup-->
+		<!-- <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile> -->
+
+		<!-- Disable default content for better control of which files are bundled. See
+		https://docs.microsoft.com/en-us/dotnet/core/deploying/single-file#default-content-in-single-file-bundles -->
+		<EnableDefaultContent>false</EnableDefaultContent>
+		<EnableDefaultContentItems>false</EnableDefaultContentItems>
+
+		<!-- Include debug symbols into the executable -->
+		<DebugType>embedded</DebugType>
+
+		<!-- generate manifest for EmbeddedResource (see below) -->
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resources\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="9.0.1" />
@@ -18,8 +50,16 @@
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="Resources\**" />
-	</ItemGroup>
+	<!-- Move single file application (Windows, macOS, Linux) to {{ProjectDir}}/publish/build path
+	after build completed -->
+	<!-- <Target AfterTargets="Publish" Name="MovePublishedSingleFile">
+		<ItemGroup>
+			<PublishFile Include="$(PublishDir)\*" />
+		</ItemGroup>
+
+		<Move
+			SourceFiles="@(PublishFile)"
+			DestinationFolder="$(ProjectDir)\publish\build\$(AssemblyName).$(Version).$(RuntimeIdentifier)" />
+	</Target> -->
 
 </Project>
