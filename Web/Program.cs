@@ -1,13 +1,17 @@
+// provide these configurations via env vars o.s.
 var Configurations = new
 {
-    BaseUrl = "http://localhost",
     BackendServerPort = 5000,
+    Dev_BaseUrl = "http://localhost",
     Dev_FrontendServerPort = 3000
 };
 
 var builder = WebApplication.CreateBuilder(args);
-var baseUrl = $"{Configurations.BaseUrl}:{Configurations.BackendServerPort}";
-builder.WebHost.UseUrls(baseUrl);
+builder.WebHost.UseKestrel(options =>
+{
+    // listen to any network interface
+    options.ListenAnyIP(Configurations.BackendServerPort);
+});
 
 var app = builder.Build();
 
@@ -33,7 +37,7 @@ if (app.Environment.IsDevelopment())
     app.UseSpa(spa =>
     {
         // Proxy requests to the SPA development server
-        spa.UseProxyToSpaDevelopmentServer($"{Configurations.BaseUrl}:{Configurations.Dev_FrontendServerPort}");
+        spa.UseProxyToSpaDevelopmentServer($"{Configurations.Dev_BaseUrl}:{Configurations.Dev_FrontendServerPort}");
     });
 }
 else
