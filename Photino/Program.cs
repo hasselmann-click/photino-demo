@@ -7,6 +7,7 @@ using Photino.NET;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
+using Backend;
 
 namespace Photino;
 //NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
@@ -70,15 +71,18 @@ class Program
         }
         baseUrl = $"{Configurations.BaseUrl}:{port}";
         builder.WebHost.UseUrls(baseUrl);
+        builder.Services.AddControllers()
+            // use extension method from Backend project
+            .AddBackendControllers();
 
         WebApplication app = builder.Build();
 
         // app.UseCors("AllowAll");
-        // app.MapControllers(); // Map API controllers
+        app.MapControllers(); // Map API controllers
         // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
 
         // do controllers before calling "UseSpa"
-        app.MapGet("/greetings", () => "Hello from ASP.NET");
+        // app.MapGet("/greetings", () => "Hello from ASP.NET");
 
         // Middleware ordering, as recommended here: 
         // https://learn.microsoft.com/en-gb/aspnet/core/diagnostics/asp0014?view=aspnetcore-9.0#when-to-suppress-warnings
