@@ -1,3 +1,5 @@
+using Backend;
+
 // provide these configurations via env vars o.s.
 var Configurations = new
 {
@@ -12,15 +14,18 @@ builder.WebHost.UseKestrel(options =>
     // listen to any network interface
     options.ListenAnyIP(Configurations.BackendServerPort);
 });
+builder.Services.AddControllers()
+    // use extension method from Backend project
+    .AddBackendControllers();
 
 var app = builder.Build();
 
 // app.UseCors("AllowAll");
-// app.MapControllers(); // Map API controllers
 // app.MapFallbackToFile("index.html"); // Serve index.html for all other routes
 
 // do controllers before calling "UseSpa"
-app.MapGet("/greetings", () => "Hello from ASP.NET");
+// app.MapGet("/greetings", () => "Hello from ASP.NET");
+app.MapControllers(); // Map API controllers
 
 // Middleware ordering, as recommended here: 
 // https://learn.microsoft.com/en-gb/aspnet/core/diagnostics/asp0014?view=aspnetcore-9.0#when-to-suppress-warnings
